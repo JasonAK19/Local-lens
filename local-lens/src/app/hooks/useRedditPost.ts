@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchLocationPosts, RedditPost } from '@/lib/reddit';
 
-export function useRedditPosts(location: string) {
+export function useRedditPosts(location: string, redditSort: 'hot' | 'new' | 'top' | 'relevant') {
   const [posts, setPosts] = useState<RedditPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -10,7 +10,8 @@ export function useRedditPosts(location: string) {
     try {
       setLoading(true);
       setError(null);
-      const redditPosts = await fetchLocationPosts(location);
+      // Pass the redditSort parameter to fetchLocationPosts
+      const redditPosts = await fetchLocationPosts(location, redditSort);
       setPosts(redditPosts);
     } catch (err) {
       setError('Failed to load Reddit posts');
@@ -22,8 +23,7 @@ export function useRedditPosts(location: string) {
 
   useEffect(() => {
     loadPosts();
-  }, [location]);
+  }, [location, redditSort]); // Add redditSort to the dependency array
 
   return { posts, loading, error, refetch: () => loadPosts() };
 }
-

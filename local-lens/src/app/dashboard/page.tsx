@@ -17,6 +17,9 @@ export default function Dashboard() {
     { name: 'Local News', count: 156, active: true }
   ]);
 
+  const [redditSort, setRedditSort] = useState<'hot' | 'new' | 'top' | 'relevant'>('relevant');
+
+
   const formatTime = (timestamp: number) => {
     const now = Date.now() / 1000;
     const diff = now - timestamp;
@@ -26,17 +29,20 @@ export default function Dashboard() {
     return `${Math.floor(hours / 24)}d`;
   };
 
-  const { posts: redditPosts, loading, error } = useRedditPosts(selectedLocation);
+  const { posts: redditPosts, loading, error } = useRedditPosts(selectedLocation, redditSort);
 
   const transformedRedditPosts = redditPosts.map((post, index) => ({
-    id: index + 1000, // Using an offset to avoid conflicts with other post IDs
+    id: index + 1000, 
     source: `r/${post.subreddit}`,
     title: post.title,
     content: post.selftext || 'Click to view full post',
     time: formatTime(post.created_utc),
     comments: post.num_comments,
     upvotes: post.score,
-    type: 'reddit' as const
+    type: 'reddit' as const,
+    permalink: post.permalink,
+    url: post.url,
+    subreddit: post.subreddit
   }));
 
 
@@ -280,6 +286,27 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
+
+            {/* Reddit Sort Options */}
+            <div className="bg-white rounded-lg border border-gray-200 mb-6 p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Reddit Posts</h3>
+              <div className="flex items-center space-x-2">
+                <label htmlFor="reddit-sort" className="text-sm text-gray-600">Sort by:</label>
+                <select
+                  id="reddit-sort"
+                  value={redditSort}
+                  onChange={(e) => setRedditSort(e.target.value as 'hot' | 'new' | 'top' | 'relevant')}
+                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="relevant">Most Relevant</option>
+                  <option value="hot">Hot</option>
+                  <option value="new">New</option>
+                  <option value="top">Top</option>
+                </select>
+              </div>
+            </div>
+          </div>
 
             {/* Posts Feed */}
             <div className="divide-y divide-gray-200">

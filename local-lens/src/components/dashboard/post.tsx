@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquare, Calendar, FileText, Users, ExternalLink, MoreHorizontal } from 'lucide-react';
+import { MessageSquare, Calendar, FileText, Users, ExternalLink, MoreHorizontal, MessageCircle, ArrowUp } from 'lucide-react';
 
 interface PostData {
   id: number;
@@ -21,7 +21,25 @@ interface PostProps {
   post: PostData;
 }
 
-export default function Post({ post }: PostProps) {
+export default function Post({ post }: {post: any}) {
+  const openInReddit = () => {
+    let redditUrl;
+    
+    if (post.permalink) {
+      // Use permalink if available (most reliable)
+      redditUrl = `https://www.reddit.com${post.permalink}`;
+    } else if (post.url && post.url.includes('reddit.com')) {
+      // Use URL if it's a Reddit URL
+      redditUrl = post.url;
+    } else {
+      // Fallback: construct URL manually
+      redditUrl = `https://www.reddit.com/r/${post.subreddit}/comments/${post.id}/`;
+    }
+    
+    console.log('Opening Reddit URL:', redditUrl); // Debug log
+    window.open(redditUrl, '_blank');
+  };
+
   return (
     <div className="p-6">
       <div className="flex items-start space-x-3">
@@ -48,17 +66,7 @@ export default function Post({ post }: PostProps) {
           <p className="text-gray-700 mb-3">{post.content}</p>
           
           <div className="flex items-center space-x-4 text-sm text-gray-500">
-            {post.comments && (
-              <div className="flex items-center space-x-1">
-                <MessageSquare className="h-4 w-4" />
-                <span>{post.comments} comments</span>
-              </div>
-            )}
-            {post.upvotes && (
-              <div className="flex items-center space-x-1">
-                <span>↑ {post.upvotes}</span>
-              </div>
-            )}
+            
             {post.attending && (
               <div className="flex items-center space-x-1">
                 <Users className="h-4 w-4" />
@@ -87,6 +95,30 @@ export default function Post({ post }: PostProps) {
         <button className="p-1 text-gray-400 hover:text-gray-600">
           <MoreHorizontal className="h-4 w-4" />
         </button>
+      </div>
+       {/* Add interaction buttons */}
+      <div className="flex items-center justify-between mt-4">
+        {        post.type === 'reddit' && (
+        <div className="flex items-center space-x-4">
+          <button className="flex items-center space-x-1 text-gray-500 hover:text-blue-600">
+            <MessageCircle className="h-4 w-4" />
+            <span>{post.comments}</span>
+          </button>
+          <button className="flex items-center space-x-1 text-gray-500 hover:text-orange-600">
+            <ArrowUp className="h-4 w-4" />
+            <span>{post.upvotes}</span>
+          </button>
+        </div>
+        )}
+        
+        {post.type === 'reddit' && (
+          <button 
+            onClick={openInReddit}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            View on Reddit →
+          </button>
+        )}
       </div>
     </div>
   );
