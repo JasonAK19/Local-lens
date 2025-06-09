@@ -1,23 +1,11 @@
 "use client";
 import React, { useState } from 'react';
+import { useRedditPosts } from '../hooks/useRedditPost';
 import Header from '@/components/dashboard/header';
 import StatsCards from '@/components/dashboard/statscard';
 import Post from '@/components/dashboard/post'; 
 import Sidebar from '@/components/dashboard/sidebar';
-import { 
-  Search, 
-  Bell, 
-  User, 
-  MapPin, 
-  MessageSquare, 
-  Calendar, 
-  FileText, 
-  MoreHorizontal,
-  Users,
-  Clock,
-  ExternalLink,
-  ChevronDown
-} from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export default function Dashboard() {
   const [selectedLocation, setSelectedLocation] = useState('Baltimore, MD');
@@ -29,6 +17,29 @@ export default function Dashboard() {
     { name: 'Local News', count: 156, active: true }
   ]);
 
+  const formatTime = (timestamp: number) => {
+    const now = Date.now() / 1000;
+    const diff = now - timestamp;
+    const hours = Math.floor(diff / 3600);
+    if (hours < 1) return `${Math.floor(diff / 60)}m`;
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
+  };
+
+  const { posts: redditPosts, loading, error } = useRedditPosts(selectedLocation);
+
+  const transformedRedditPosts = redditPosts.map((post, index) => ({
+    id: index + 1000, // Using an offset to avoid conflicts with other post IDs
+    source: `r/${post.subreddit}`,
+    title: post.title,
+    content: post.selftext || 'Click to view full post',
+    time: formatTime(post.created_utc),
+    comments: post.num_comments,
+    upvotes: post.score,
+    type: 'reddit' as const
+  }));
+
+
   const toggleContentSource = (index: number) => {
     setContentSources(prev => 
       prev.map((source, i) => 
@@ -39,7 +50,7 @@ export default function Dashboard() {
 
   // Mock data for the dashboard
   const stats = {
-    reddit: 1247,
+    reddit: redditPosts.length,
     twitter: 23,
     events: 89,
     news: 156
@@ -156,11 +167,12 @@ export default function Dashboard() {
     }
   ];
 
-  // Filter posts based on active filter and content source settings
-  const getFilteredPosts = () => {
-    let filtered = posts;
+ const mockNonRedditPosts = posts.filter(post => post.type !== 'reddit');
+ const allPosts = [...transformedRedditPosts, ...mockNonRedditPosts];
 
-    // First filter by content source checkboxes
+  const getFilteredPosts = () => {
+    let filtered = allPosts;
+
     const activeSourceTypes = contentSources
       .filter(source => source.active)
       .map(source => {
@@ -175,7 +187,6 @@ export default function Dashboard() {
 
     filtered = filtered.filter(post => activeSourceTypes.includes(post.type));
 
-    // Then filter by active tab filter
     if (activeFilter !== 'All') {
       const filterType = activeFilter.toLowerCase() as 'reddit' | 'twitter' | 'events' | 'news';
       const typeMap: Record<string, string> = {
@@ -193,7 +204,7 @@ export default function Dashboard() {
 
   // Get count for each filter tab
   const getFilterCount = (filter: string) => {
-    if (filter === 'All') return posts.length;
+    if (filter === 'All') return allPosts.length;
     
     const filterType = filter.toLowerCase() as 'reddit' | 'twitter' | 'events' | 'news';
     const typeMap = {
@@ -203,10 +214,13 @@ export default function Dashboard() {
       'news': 'news'
     } as const;
     
-    return posts.filter(post => post.type === typeMap[filterType]).length;
+    return allPosts.filter(post => post.type === typeMap[filterType]).length;
   };
 
   const filteredPosts = getFilteredPosts();
+
+ 
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -224,6 +238,25 @@ export default function Dashboard() {
         {/* Main Content */}
          <main className="flex-1 p-6">
           <StatsCards stats={stats} />
+           {/* loading/error states */}
+          {loading && (
+            <div className="bg-white rounded-lg border border-gray-200 mb-6 p-12 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading Reddit posts...</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg mb-6 p-6">
+              <p className="text-red-600">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="mt-2 text-sm text-red-700 underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
 
           {/* Filter Tabs */}
           <div className="bg-white rounded-lg border border-gray-200 mb-6">
@@ -281,3 +314,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
