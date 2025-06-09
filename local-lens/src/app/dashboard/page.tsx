@@ -1,5 +1,9 @@
 "use client";
 import React, { useState } from 'react';
+import Header from '@/components/dashboard/header';
+import StatsCards from '@/components/dashboard/statscard';
+import Post from '@/components/dashboard/post'; 
+import Sidebar from '@/components/dashboard/sidebar';
 import { 
   Search, 
   Bell, 
@@ -206,144 +210,20 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center mr-2">
-                <span className="text-white font-bold text-sm">L</span>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900">LocalLens</h1>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search locations..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <Bell className="h-5 w-5" />
-            </button>
-            <button className="p-2 text-gray-400 hover:text-gray-600">
-              <User className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
-          {/* Location Selector */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center text-sm text-gray-600 mb-2">
-              <MapPin className="h-4 w-4 mr-1" />
-              Currently viewing local content
-            </div>
-            <div className="relative">
-              <select 
-                value={selectedLocation}
-                onChange={(e) => setSelectedLocation(e.target.value)}
-                className="w-full p-2 text-sm font-medium text-gray-900 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="Baltimore, MD">Baltimore, MD</option>
-                <option value="Annapolis, MD">Annapolis, MD</option>
-                <option value="Columbia, MD">Columbia, MD</option>
-                <option value="Towson, MD">Towson, MD</option>
-              </select>
-            </div>
-            <button className="w-full mt-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700">
-              Change Location
-            </button>
-          </div>
-
-          {/* Content Sources */}
-          <div className="p-4 border-b border-gray-200">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Content Sources</h3>
-            <div className="space-y-2">
-              {contentSources.map((source, index) => (
-                <label key={index} className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={source.active}
-                    onChange={() => toggleContentSource(index)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{source.name}</span>
-                  <span className="ml-auto text-xs text-gray-500">{source.count}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Trending Topics */}
-          <div className="p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Trending Topics</h3>
-            <div className="space-y-2">
-              {trendingTopics.map((topic, index) => (
-                <button
-                  key={index}
-                  className="block text-sm text-blue-600 hover:text-blue-700"
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-          </div>
-        </aside>
+        <Sidebar
+          selectedLocation={selectedLocation}
+          setSelectedLocation={setSelectedLocation}
+          contentSources={contentSources}
+          toggleContentSource={toggleContentSource}
+          trendingTopics={trendingTopics}
+        />
 
         {/* Main Content */}
-        <main className="flex-1 p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="flex items-center">
-                <MessageSquare className="h-8 w-8 text-orange-500 mr-3" />
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.reddit}</p>
-                  <p className="text-sm text-gray-500">Reddit Posts</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="flex items-center">
-                <div className="h-8 w-8 bg-blue-500 rounded mr-3 flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">X</span>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.twitter}</p>
-                  <p className="text-sm text-gray-500">X Posts</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-yellow-500 mr-3" />
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.events}</p>
-                  <p className="text-sm text-gray-500">Events</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <div className="flex items-center">
-                <FileText className="h-8 w-8 text-green-500 mr-3" />
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{stats.news}</p>
-                  <p className="text-sm text-gray-500">News Updates</p>
-                </div>
-              </div>
-            </div>
-          </div>
+         <main className="flex-1 p-6">
+          <StatsCards stats={stats} />
 
           {/* Filter Tabs */}
           <div className="bg-white rounded-lg border border-gray-200 mb-6">
@@ -372,72 +252,7 @@ export default function Dashboard() {
             <div className="divide-y divide-gray-200">
               {filteredPosts.length > 0 ? (
                 filteredPosts.map((post) => (
-                  <div key={post.id} className="p-6">
-                    <div className="flex items-start space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        post.type === 'reddit' ? 'bg-orange-100' :
-                        post.type === 'twitter' ? 'bg-blue-100' :
-                        post.type === 'event' ? 'bg-yellow-100' :
-                        'bg-green-100'
-                      }`}>
-                        {post.type === 'reddit' && <MessageSquare className="h-5 w-5 text-orange-600" />}
-                        {post.type === 'twitter' && <span className="text-blue-600 font-bold text-xs">X</span>}
-                        {post.type === 'event' && <Calendar className="h-5 w-5 text-yellow-600" />}
-                        {post.type === 'news' && <FileText className="h-5 w-5 text-green-600" />}
-                      </div>
-                      
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <span className="text-sm font-medium text-gray-900">{post.source}</span>
-                          <span className="text-sm text-gray-500">•</span>
-                          <span className="text-sm text-gray-500">{post.time} ago</span>
-                        </div>
-                        
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">{post.title}</h3>
-                        <p className="text-gray-700 mb-3">{post.content}</p>
-                        
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          {post.comments && (
-                            <div className="flex items-center space-x-1">
-                              <MessageSquare className="h-4 w-4" />
-                              <span>{post.comments} comments</span>
-                            </div>
-                          )}
-                          {post.upvotes && (
-                            <div className="flex items-center space-x-1">
-                              <span>↑ {post.upvotes}</span>
-                            </div>
-                          )}
-                          {post.attending && (
-                            <div className="flex items-center space-x-1">
-                              <Users className="h-4 w-4" />
-                              <span>{post.attending} attending</span>
-                            </div>
-                          )}
-                          {post.shares && (
-                            <div className="flex items-center space-x-1">
-                              <ExternalLink className="h-4 w-4" />
-                              <span>{post.shares} shares</span>
-                            </div>
-                          )}
-                          {post.likes && (
-                            <div className="flex items-center space-x-1">
-                              <span>❤️ {post.likes}</span>
-                            </div>
-                          )}
-                          {post.retweets && (
-                            <div className="flex items-center space-x-1">
-                              <span>🔄 {post.retweets}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <button className="p-1 text-gray-400 hover:text-gray-600">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
+                  <Post key={post.id} post={post} />
                 ))
               ) : (
                 <div className="p-12 text-center">
