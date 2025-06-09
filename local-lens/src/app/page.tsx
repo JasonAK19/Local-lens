@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import { MapPin, Calendar, MessageSquare, Newspaper, Facebook, Twitter, Instagram } from 'lucide-react';
+import Link from 'next/link';
 
 export default function LocalLensLanding() {
   return (
@@ -16,7 +17,8 @@ export default function LocalLensLanding() {
               <span className="ml-2 text-xl font-bold text-gray-900">LocalLens</span>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="text-gray-500 hover:text-gray-700">Browse as Guest</button>
+              <Link href="/dashboard" className="text-gray-500 hover:text-gray-700"> Browse as Guest
+              </Link>
               <button className="text-blue-600 hover:text-blue-700">Log In</button>
               <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
                 Sign Up
@@ -47,9 +49,9 @@ export default function LocalLensLanding() {
               </div>
               
               <div className="flex flex-col sm:flex-row gap-4">
-                <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                 <Link href="/dashboard" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors text-center">
                   Get Started Free
-                </button>
+                </Link>
                 <button className="flex items-center text-gray-700 hover:text-gray-900">
                   <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center mr-2">
                     ▶
@@ -217,12 +219,12 @@ export default function LocalLensLanding() {
             Join thousands of users discovering what's happening in their neighborhood
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+            <Link href="/dashboard" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
               Start Exploring Now
-            </button>
-            <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
+            </Link>
+            <Link href="/dashboard" className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
               Browse as Guest
-            </button>
+            </Link>
           </div>
         </div>
       </section>
