@@ -1,24 +1,64 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRedditPosts } from '../hooks/useRedditPost';
 import Header from '@/components/dashboard/header';
 import StatsCards from '@/components/dashboard/statscard';
 import Post from '@/components/dashboard/post'; 
 import Sidebar from '@/components/dashboard/sidebar';
 import { Search } from 'lucide-react';
+import { useLocation } from '@/contexts/locationContext';
+import { locationService } from '@/utils/locationService';
 
 export default function Dashboard() {
-  const [selectedLocation, setSelectedLocation] = useState('Baltimore, MD');
+  const { currentLocation, setLocation} = useLocation();
+
+  const getLocationString = (location: any) => {
+    if (!location) return 'Baltimore, MD'; // fallback
+    
+    if (location.city && location.state) {
+      return `${location.city}, ${location.state}`;
+    }
+    
+    if (location.displayName) {
+      const parts = location.displayName.split(',');
+      if (parts.length >= 2) {
+        return `${parts[0].trim()}, ${parts[1].trim()}`;
+      }
+    }
+    
+    return `${location.latitude}, ${location.longitude}`;
+  };
+
+  
+
+  const [selectedLocation, setSelectedLocation] = useState(currentLocation ? getLocationString(currentLocation) : 'Baltimore, MD');
+  useEffect(() => {
+    if (currentLocation) {
+      const newLocation = getLocationString(currentLocation);
+      setSelectedLocation(newLocation);
+    }
+  }, [currentLocation]);
+
+  const handleLocationChange = (newLocationString: string) => {
+    setSelectedLocation(newLocationString);
+    
+    const [city, state] = newLocationString.split(', ');
+    const newLocation = {
+      latitude: 0,
+      longitude: 0,
+      city: city,
+      state: state,
+      displayName: newLocationString
+    };
+    
+    setLocation(newLocation);
+  };
+
   const [activeFilter, setActiveFilter] = useState('All');
-  const [contentSources, setContentSources] = useState([
-    { name: 'Reddit', count: 1247, active: true },
-    { name: 'X (Twitter)', count: 23, active: true },
-    { name: 'Events', count: 89, active: true },
-    { name: 'Local News', count: 156, active: true }
-  ]);
+ 
 
   const [redditSort, setRedditSort] = useState<'hot' | 'new' | 'top' | 'relevant'>('relevant');
-
+  
 
   const formatTime = (timestamp: number) => {
     const now = Date.now() / 1000;
@@ -45,6 +85,13 @@ export default function Dashboard() {
     subreddit: post.subreddit
   }));
 
+   const [contentSources, setContentSources] = useState([
+    { name: 'Reddit', count: redditPosts.length, active: true },
+    { name: 'X (Twitter)', count: 23, active: true },
+    { name: 'Events', count: 89, active: true },
+    { name: 'Local News', count: 156, active: true }
+  ]);
+
 
   const toggleContentSource = (index: number) => {
     setContentSources(prev => 
@@ -53,6 +100,11 @@ export default function Dashboard() {
       )
     );
   };
+
+  
+
+
+  
 
   // Mock data for the dashboard
   const stats = {
@@ -235,7 +287,7 @@ export default function Dashboard() {
       <div className="flex">
         <Sidebar
           selectedLocation={selectedLocation}
-          setSelectedLocation={setSelectedLocation}
+          setSelectedLocation={handleLocationChange}
           contentSources={contentSources}
           toggleContentSource={toggleContentSource}
           trendingTopics={trendingTopics}
@@ -243,12 +295,21 @@ export default function Dashboard() {
 
         {/* Main Content */}
          <main className="flex-1 p-6">
+           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+              <span className="text-sm text-blue-800">
+                Showing content for: {selectedLocation}
+              </span>
+            </div>
+          </div>
           <StatsCards stats={stats} />
+
            {/* loading/error states */}
           {loading && (
             <div className="bg-white rounded-lg border border-gray-200 mb-6 p-12 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading Reddit posts...</p>
+              <p className="text-gray-500">Loading content for {selectedLocation}...</p>
             </div>
           )}
 
