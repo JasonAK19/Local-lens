@@ -83,12 +83,17 @@ export default function Post({ post }: {post: any}) {
   }
   
   return url;
-};;
+};
+
+const openNewsArticle = () => {
+    if (post.url) {
+      window.open(post.url, '_blank');
+    }
+  };
 
   // Function to render media preview
   const renderMediaPreview = () => {
 
-    
     if (!post.url && !post.thumbnail) return null;
     
     if (post.thumbnail && (post.thumbnail === 'self' || post.thumbnail === 'default' || post.thumbnail === 'nsfw' || post.thumbnail === 'spoiler')) {
@@ -127,6 +132,7 @@ export default function Post({ post }: {post: any}) {
     </div>
   );
 }
+  
 
   // Handle images
   if (isImageUrl(mediaUrl) || (thumbnailUrl && isImageUrl(thumbnailUrl) && !imageError)) {
@@ -349,9 +355,6 @@ export default function Post({ post }: {post: any}) {
             )}
           </div>
 
-
-
-
           <div className="flex items-center space-x-4 text-sm text-gray-500">
             {post.attending && (
               <div className="flex items-center space-x-1">
@@ -405,6 +408,16 @@ export default function Post({ post }: {post: any}) {
             View on Reddit →
           </button>
         )}
+
+      {post.type === 'news' && (
+          <button 
+            onClick={openNewsArticle}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Read Full Article →
+          </button>
+        )}
+
       </div>
     </div>
   );

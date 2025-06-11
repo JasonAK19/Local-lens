@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useRedditPosts } from '../hooks/useRedditPost';
+import { useNewsApi } from '../hooks/useNewsApi';
 import Header from '@/components/dashboard/header';
 import StatsCards from '@/components/dashboard/statscard';
 import Post from '@/components/dashboard/post'; 
@@ -27,6 +28,26 @@ export default function Dashboard() {
     }
     
     return `${location.latitude}, ${location.longitude}`;
+  };
+
+  const formatTime = (timestamp: number) => {
+    const now = Date.now() / 1000;
+    const diff = now - timestamp;
+    const hours = Math.floor(diff / 3600);
+    if (hours < 1) return `${Math.floor(diff / 60)}m`;
+    if (hours < 24) return `${hours}h`;
+    return `${Math.floor(hours / 24)}d`;
+  };
+
+    const formatTimeFromDate = (dateString: string): string => {
+    const now = new Date();
+    const publishedDate = new Date(dateString);
+    const diffInMs = now.getTime() - publishedDate.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return `${Math.floor(diffInMs / (1000 * 60))}m`;
+    if (diffInHours < 24) return `${diffInHours}h`;
+    return `${Math.floor(diffInHours / 24)}d`;
   };
 
   
@@ -60,16 +81,16 @@ export default function Dashboard() {
   const [redditSort, setRedditSort] = useState<'hot' | 'new' | 'top' | 'relevant'>('relevant');
   
 
-  const formatTime = (timestamp: number) => {
-    const now = Date.now() / 1000;
-    const diff = now - timestamp;
-    const hours = Math.floor(diff / 3600);
-    if (hours < 1) return `${Math.floor(diff / 60)}m`;
-    if (hours < 24) return `${hours}h`;
-    return `${Math.floor(hours / 24)}d`;
-  };
+  const { posts: redditPosts, 
+    loading, error 
+  } = useRedditPosts(selectedLocation, redditSort);
 
-  const { posts: redditPosts, loading, error } = useRedditPosts(selectedLocation, redditSort);
+  const { 
+    articles: newsArticles, 
+    loading: newsLoading, 
+    error: newsError 
+  } = useNewsApi(selectedLocation);
+
 
   const transformedRedditPosts = redditPosts.map((post, index) => ({
     id: index + 1000, 
@@ -85,11 +106,26 @@ export default function Dashboard() {
     subreddit: post.subreddit
   }));
 
+
+  const transformedNewsArticles = newsArticles.map((article, index) => ({
+    id: `news-${index}`,
+    source: article.source.name,
+    title: article.title,
+    content: article.description || 'Click to read full article',
+    time: formatTimeFromDate(article.publishedAt),
+    url: article.url,
+    urlToImage: article.urlToImage,
+    type: 'news' as const
+  }));
+
+
+
+
    const [contentSources, setContentSources] = useState([
     { name: 'Reddit', count: redditPosts.length, active: true },
     { name: 'X (Twitter)', count: 23, active: true },
     { name: 'Events', count: 89, active: true },
-    { name: 'Local News', count: 156, active: true }
+    { name: 'Local News', count: newsArticles.length, active: true }
   ]);
 
 
@@ -101,17 +137,25 @@ export default function Dashboard() {
     );
   };
 
-  
+  useEffect(() => {
+    setContentSources(prev => prev.map(source => 
+      source.name === 'Local News' 
+        ? { ...source, count: newsArticles.length }
+        : source.name === 'Reddit'
+        ? { ...source, count: redditPosts.length }
+        : source
+    ));
+  }, [newsArticles.length, redditPosts.length]);
 
-
-  
+  const isLoading = loading || newsLoading;
+  const hasError = error || newsError;
 
   // Mock data for the dashboard
   const stats = {
     reddit: redditPosts.length,
     twitter: 23,
     events: 89,
-    news: 156
+    news: newsArticles.length,
   };
 
   const trendingTopics = [
@@ -225,8 +269,8 @@ export default function Dashboard() {
     }
   ];
 
- const mockNonRedditPosts = posts.filter(post => post.type !== 'reddit');
- const allPosts = [...transformedRedditPosts, ...mockNonRedditPosts];
+   const mockNonRedditPosts = posts.filter(post => post.type !== 'reddit' && post.type !== 'news');
+  const allPosts = [...transformedRedditPosts, ...transformedNewsArticles, ...mockNonRedditPosts]
 
   const getFilteredPosts = () => {
     let filtered = allPosts;
@@ -313,15 +357,25 @@ export default function Dashboard() {
             </div>
           )}
 
-          {error && (
+          {hasError && (
             <div className="bg-red-50 border border-red-200 rounded-lg mb-6 p-6">
-              <p className="text-red-600">{error}</p>
+              <p className="text-red-600">{error || newsError}</p>
               <button 
                 onClick={() => window.location.reload()}
                 className="mt-2 text-sm text-red-700 underline"
               >
                 Try again
               </button>
+            </div>
+          )}
+
+           {/* Show news-specific loading indicator */}
+          {newsLoading && !loading && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg mb-6 p-4">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <p className="text-blue-800 text-sm">Loading local news...</p>
+              </div>
             </div>
           )}
 
@@ -349,25 +403,27 @@ export default function Dashboard() {
             </div>
 
             {/* Reddit Sort Options */}
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Reddit Posts</h3>
-              <div className="flex items-center space-x-2">
-                <label htmlFor="reddit-sort" className="text-sm text-gray-600">Sort by:</label>
-                <select
-                  id="reddit-sort"
-                  value={redditSort}
-                  onChange={(e) => setRedditSort(e.target.value as 'hot' | 'new' | 'top' | 'relevant')}
-                  className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="relevant">Most Relevant</option>
-                  <option value="hot">Hot</option>
-                  <option value="new">New</option>
-                  <option value="top">Top</option>
-                </select>
+             {(activeFilter === 'Reddit' || activeFilter === 'All') && (
+              <div className="bg-white rounded-lg border border-gray-200 mb-6 p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-900">Reddit Posts</h3>
+                  <div className="flex items-center space-x-2">
+                    <label htmlFor="reddit-sort" className="text-sm text-gray-600">Sort by:</label>
+                    <select
+                      id="reddit-sort"
+                      value={redditSort}
+                      onChange={(e) => setRedditSort(e.target.value as 'hot' | 'new' | 'top' | 'relevant')}
+                      className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="relevant">Most Relevant</option>
+                      <option value="hot">Hot</option>
+                      <option value="new">New</option>
+                      <option value="top">Top</option>
+                    </select>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            )}
 
             {/* Posts Feed */}
             <div className="divide-y divide-gray-200">
