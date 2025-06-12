@@ -102,7 +102,7 @@ const openNewsArticle = () => {
 
     const mediaUrl = post.url;
     const thumbnailUrl = post.thumbnail;
-
+/*
     // Debug logging
     console.log('Post media debug:', {
     mediaUrl,
@@ -113,7 +113,7 @@ const openNewsArticle = () => {
     post
   });
 
-
+*/
   if (isImageUrl(mediaUrl) || (thumbnailUrl && isImageUrl(thumbnailUrl))) {
   const originalImageUrl = isImageUrl(mediaUrl) ? mediaUrl : thumbnailUrl;
   const proxiedImageUrl = getProxiedImageUrl(originalImageUrl);

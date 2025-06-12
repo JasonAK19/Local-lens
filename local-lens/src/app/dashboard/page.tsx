@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRedditPosts } from '../hooks/useRedditPost';
 import { useNewsApi } from '../hooks/useNewsApi';
+import { useTicketmasterEvents } from '../hooks/useTicketMasterApi';
 import Header from '@/components/dashboard/header';
 import StatsCards from '@/components/dashboard/statscard';
 import Post from '@/components/dashboard/post'; 
@@ -9,9 +10,19 @@ import Sidebar from '@/components/dashboard/sidebar';
 import { Search } from 'lucide-react';
 import { useLocation } from '@/contexts/locationContext';
 import { locationService } from '@/utils/locationService';
+import NewsCard from '@/components/news/NewsCard';
+import SentimentFilter from '@/components/news/SentimentFilter';
+import EventCard from '@/components/events/EventCard';
+//import EventsFilter from '@/components/events/EventsFilter';
 
 export default function Dashboard() {
   const { currentLocation, setLocation} = useLocation();
+  const [selectedSentiment, setSelectedSentiment] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [minImpact, setMinImpact] = useState<number>(0);
+  const [selectedEventCategory, setSelectedEventCategory] = useState<string | null>(null);
+  const [selectedEventPrice, setSelectedEventPrice] = useState<'free' | 'paid' | 'all'>('all');
+  const [eventRadius, setEventRadius] = useState<string>('25');
 
   const getLocationString = (location: any) => {
     if (!location) return 'Baltimore, MD'; // fallback
@@ -77,7 +88,6 @@ export default function Dashboard() {
 
   const [activeFilter, setActiveFilter] = useState('All');
  
-
   const [redditSort, setRedditSort] = useState<'hot' | 'new' | 'top' | 'relevant'>('relevant');
   
 
@@ -87,10 +97,22 @@ export default function Dashboard() {
 
   const { 
     articles: newsArticles, 
+    analytics,
     loading: newsLoading, 
     error: newsError 
-  } = useNewsApi(selectedLocation);
+  } = useNewsApi(selectedLocation, {
+    sentiment: selectedSentiment || undefined,
+    category: selectedCategory || undefined,
+    minImpact: minImpact || undefined
+  });
 
+  const { events: ticketmasterEvents, loading: eventsLoading, error: eventsError } = useTicketmasterEvents(
+  selectedLocation,
+  eventRadius,
+  undefined, // keyword
+  selectedEventCategory || undefined,
+  selectedEventPrice !== 'all' ? selectedEventPrice : undefined
+);
 
   const transformedRedditPosts = redditPosts.map((post, index) => ({
     id: index + 1000, 
@@ -119,12 +141,35 @@ export default function Dashboard() {
   }));
 
 
+  const transformedEvents = ticketmasterEvents.map((event, index) => ({
+  id: event.id || `event-${index}`,
+  title: event.name || 'Untitled Event',
+  description: event.info || 'Click to view event details',
+  startTime: event.dates?.start?.dateTime || event.dates?.start?.localDate || '',
+  endTime: event.dates?.end?.dateTime || event.dates?.end?.localDate || '',
+  timezone: event.dates?.timezone || 'UTC',
+  url: event.url || '',
+  venue: event._embedded?.venues?.[0] || null,
+  isOnline: false,
+  logoUrl: event.images?.[0]?.url || undefined,
+  categoryId: event.classifications?.[0]?.segment?.id || undefined,
+  subcategoryId: event.classifications?.[0]?.genre?.id || undefined,
+  isFree: event.priceRanges ? event.priceRanges.some(price => price.min === 0) : false,
+  capacity: undefined,
+  hasAvailableTickets: true, 
+  source: event._embedded?.venues?.[0]?.name || 'Ticketmaster',
+  content: event.info || 'Click to view event details',
+  time: event.dates?.start?.dateTime ? formatTimeFromDate(event.dates.start.dateTime) : 
+        event.dates?.start?.localDate ? formatTimeFromDate(event.dates.start.localDate) : 'TBA',
+  type: 'event' as const
+}));
+
 
 
    const [contentSources, setContentSources] = useState([
     { name: 'Reddit', count: redditPosts.length, active: true },
     { name: 'X (Twitter)', count: 23, active: true },
-    { name: 'Events', count: 89, active: true },
+    { name: 'Events', count: transformedEvents.length, active: true },
     { name: 'Local News', count: newsArticles.length, active: true }
   ]);
 
@@ -143,9 +188,11 @@ export default function Dashboard() {
         ? { ...source, count: newsArticles.length }
         : source.name === 'Reddit'
         ? { ...source, count: redditPosts.length }
+        : source.name === 'Events'
+        ? { ...source, count: transformedEvents.length }
         : source
     ));
-  }, [newsArticles.length, redditPosts.length]);
+  }, [newsArticles.length, redditPosts.length, transformedEvents.length]);
 
   const isLoading = loading || newsLoading;
   const hasError = error || newsError;
@@ -154,7 +201,7 @@ export default function Dashboard() {
   const stats = {
     reddit: redditPosts.length,
     twitter: 23,
-    events: 89,
+    events: transformedEvents.length,
     news: newsArticles.length,
   };
 
@@ -270,7 +317,10 @@ export default function Dashboard() {
   ];
 
    const mockNonRedditPosts = posts.filter(post => post.type !== 'reddit' && post.type !== 'news');
-  const allPosts = [...transformedRedditPosts, ...transformedNewsArticles, ...mockNonRedditPosts]
+    const allPosts = [...transformedRedditPosts,
+       ...transformedNewsArticles, 
+       ...transformedEvents,
+        ...mockNonRedditPosts];
 
   const getFilteredPosts = () => {
     let filtered = allPosts;
@@ -323,114 +373,221 @@ export default function Dashboard() {
 
  
 
+return (
+  <div className="min-h-screen bg-gray-50">
+    <Header />
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
+    <div className="flex">
+      <Sidebar
+        selectedLocation={selectedLocation}
+        setSelectedLocation={handleLocationChange}
+        contentSources={contentSources}
+        toggleContentSource={toggleContentSource}
+        trendingTopics={trendingTopics}
+      />
 
-      <div className="flex">
-        <Sidebar
-          selectedLocation={selectedLocation}
-          setSelectedLocation={handleLocationChange}
-          contentSources={contentSources}
-          toggleContentSource={toggleContentSource}
-          trendingTopics={trendingTopics}
-        />
+      {/* Main Content */}
+      <main className="flex-1 p-6">
+      
+        {/* Events Filter - Only show when Events tab is active 
+        {(activeFilter === 'Events' || activeFilter === 'All') && (
+          <EventsFilter
+            selectedCategory={selectedEventCategory}
+            onCategoryChange={setSelectedEventCategory}
+            selectedPrice={selectedEventPrice}
+            onPriceChange={setSelectedEventPrice}
+            radius={eventRadius}
+            onRadiusChange={setEventRadius}
+          />
+        )}*/}
+        
+        
+      
+        {/* Sentiment Filter - Only show when News tab is active */}
+        {(activeFilter === 'News' || activeFilter === 'All') && (
+          <SentimentFilter
+            selectedSentiment={selectedSentiment}
+            onSentimentChange={setSelectedSentiment}
+            analytics={analytics || undefined}
+          />
+        )}
 
-        {/* Main Content */}
-         <main className="flex-1 p-6">
-           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-sm text-blue-800">
-                Showing content for: {selectedLocation}
-              </span>
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-sm text-blue-800">
+              Showing content for: {selectedLocation}
+            </span>
+          </div>
+        </div>
+
+        <StatsCards stats={stats} />
+
+        {/* Loading/error states */}
+        {loading && (
+          <div className="bg-white rounded-lg border border-gray-200 mb-6 p-12 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-500">Loading content for {selectedLocation}...</p>
+          </div>
+        )}
+
+        {hasError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg mb-6 p-6">
+            <p className="text-red-600">{error || newsError || eventsError}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="mt-2 text-sm text-red-700 underline"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
+        {/* Show specific loading indicators */}
+        {newsLoading && !loading && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg mb-6 p-4">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <p className="text-blue-800 text-sm">Loading local news...</p>
             </div>
           </div>
-          <StatsCards stats={stats} />
+        )}
 
-           {/* loading/error states */}
-          {loading && (
-            <div className="bg-white rounded-lg border border-gray-200 mb-6 p-12 text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-500">Loading content for {selectedLocation}...</p>
+        {eventsLoading && !loading && (
+          <div className="bg-green-50 border border-green-200 rounded-lg mb-6 p-4">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+              <p className="text-green-800 text-sm">Loading local events...</p>
             </div>
-          )}
+          </div>
+        )}
 
-          {hasError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg mb-6 p-6">
-              <p className="text-red-600">{error || newsError}</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="mt-2 text-sm text-red-700 underline"
-              >
-                Try again
-              </button>
+        {/* Filter Tabs */}
+        <div className="bg-white rounded-lg border border-gray-200 mb-6">
+          <div className="border-b border-gray-200 px-6 py-4">
+            <div className="flex space-x-8">
+              {['All', 'Reddit', 'Twitter', 'Events', 'News'].map((filter) => (
+                <button
+                  key={filter}
+                  onClick={() => setActiveFilter(filter)}
+                  className={`pb-2 text-sm font-medium border-b-2 flex items-center space-x-2 ${
+                    activeFilter === filter
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <span>{filter}</span>
+                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
+                    {getFilterCount(filter)}
+                  </span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
-           {/* Show news-specific loading indicator */}
-          {newsLoading && !loading && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg mb-6 p-4">
-              <div className="flex items-center space-x-3">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                <p className="text-blue-800 text-sm">Loading local news...</p>
-              </div>
-            </div>
-          )}
-
-          {/* Filter Tabs */}
-          <div className="bg-white rounded-lg border border-gray-200 mb-6">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <div className="flex space-x-8">
-                {['All', 'Reddit', 'Twitter', 'Events', 'News'].map((filter) => (
-                  <button
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`pb-2 text-sm font-medium border-b-2 flex items-center space-x-2 ${
-                      activeFilter === filter
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700'
-                    }`}
+          {/* Reddit Sort Options */}
+          {(activeFilter === 'Reddit' || activeFilter === 'All') && (
+            <div className="bg-white rounded-lg border border-gray-200 mb-6 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Reddit Posts</h3>
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="reddit-sort" className="text-sm text-gray-600">Sort by:</label>
+                  <select
+                    id="reddit-sort"
+                    value={redditSort}
+                    onChange={(e) => setRedditSort(e.target.value as 'hot' | 'new' | 'top' | 'relevant')}
+                    className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <span>{filter}</span>
-                    <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
-                      {getFilterCount(filter)}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Reddit Sort Options */}
-             {(activeFilter === 'Reddit' || activeFilter === 'All') && (
-              <div className="bg-white rounded-lg border border-gray-200 mb-6 p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">Reddit Posts</h3>
-                  <div className="flex items-center space-x-2">
-                    <label htmlFor="reddit-sort" className="text-sm text-gray-600">Sort by:</label>
-                    <select
-                      id="reddit-sort"
-                      value={redditSort}
-                      onChange={(e) => setRedditSort(e.target.value as 'hot' | 'new' | 'top' | 'relevant')}
-                      className="px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="relevant">Most Relevant</option>
-                      <option value="hot">Hot</option>
-                      <option value="new">New</option>
-                      <option value="top">Top</option>
-                    </select>
-                  </div>
+                    <option value="relevant">Most Relevant</option>
+                    <option value="hot">Hot</option>
+                    <option value="new">New</option>
+                    <option value="top">Top</option>
+                  </select>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Posts Feed */}
+          {/* Events Section - Only when Events filter is active */}
+          {activeFilter === 'Events' && (
+            <div className="space-y-4 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Local Events</h3>
+              {eventsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
+                  <p className="text-gray-500">Loading events...</p>
+                </div>
+              ) : transformedEvents.length > 0 ? (
+                transformedEvents.map((event, index) => (
+                  <EventCard key={`${event.id}-${index}`} event={event} />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 mb-4">
+                    <Search className="h-12 w-12 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No events found</h3>
+                  <p className="text-gray-500">No events found for this location. Try adjusting your filters or search radius.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* News Articles with Enhanced Cards - Only when News filter is active */}
+          {activeFilter === 'News' && (
+            <div className="space-y-4 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Local News</h3>
+              {newsLoading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                  <p className="text-gray-500">Loading news...</p>
+                </div>
+              ) : newsArticles.length > 0 ? (
+                newsArticles.map((article, index) => (
+                  <NewsCard key={`${article.url}-${index}`} article={article} />
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <div className="text-gray-400 mb-4">
+                    <Search className="h-12 w-12 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No news found</h3>
+                  <p className="text-gray-500">No news articles found for this location.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Mixed Posts Feed - For All and other filters */}
+          {activeFilter !== 'News' && activeFilter !== 'Events' && (
             <div className="divide-y divide-gray-200">
               {filteredPosts.length > 0 ? (
-                filteredPosts.map((post) => (
-                  <Post key={post.id} post={post} />
-                ))
+                filteredPosts.map((post) => {
+                  // Use specific cards for different content types
+                  if (post.type === 'news' && 'url' in post) {
+                    const newsArticle = newsArticles.find(article => article.url === post.url);
+                    return newsArticle ? (
+                      <div key={post.id} className="p-6">
+                        <NewsCard article={newsArticle} />
+                      </div>
+                    ) : (
+                      <Post key={post.id} post={post} />
+                    );
+                  }
+                  
+                  if (post.type === 'event') {
+                    const event = ticketmasterEvents.find(event => event.id === post.id);
+                    return event ? (
+                      <div key={post.id} className="p-6">
+                        <EventCard event={event} />
+                      </div>
+                    ) : (
+                      <Post key={post.id} post={post} />
+                    );
+                  }
+                  
+                  return <Post key={post.id} post={post} />;
+                })
               ) : (
                 <div className="p-12 text-center">
                   <div className="text-gray-400 mb-4">
@@ -443,20 +600,38 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Load More Button - only show if there are posts */}
-          {filteredPosts.length > 0 && (
-            <div className="text-center">
-              <button className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Load More Content
-              </button>
-            </div>
           )}
-        </main>
-      </div>
+        </div>
+
+        {/* Load More Button - only show if there are posts and not on specific sections */}
+        {filteredPosts.length > 0 && activeFilter !== 'News' && activeFilter !== 'Events' && (
+          <div className="text-center">
+            <button className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              Load More Content
+            </button>
+          </div>
+        )}
+
+        {/* Load More Button for News */}
+        {activeFilter === 'News' && newsArticles.length > 0 && (
+          <div className="text-center mt-6">
+            <button className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              Load More News
+            </button>
+          </div>
+        )}
+
+        {/* Load More Button for Events */}
+        {activeFilter === 'Events' && transformedEvents.length > 0 && (
+          <div className="text-center mt-6">
+            <button className="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+              Load More Events
+            </button>
+          </div>
+        )}
+      </main>
     </div>
-  );
+  </div>
+);
+
 }
-
-
