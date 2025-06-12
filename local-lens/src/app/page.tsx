@@ -36,7 +36,7 @@ export default function LocalLensLanding() {
             <div className="space-y-8">
               <div className="space-y-4">
                 <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                  What's Happening{' '}
+                  What&apos;s Happening{' '}
                   <span className="text-blue-600">Near You</span>{' '}
                   Right Now
                 </h1>
@@ -216,7 +216,7 @@ export default function LocalLensLanding() {
             Ready to Explore Your Local Community?
           </h2>
           <p className="text-xl text-blue-100 mb-8">
-            Join thousands of users discovering what's happening in their neighborhood
+            Join thousands of users discovering what&apos;s happening in their neighborhood
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/dashboard" className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
@@ -236,7 +236,7 @@ export default function LocalLensLanding() {
             <div>
               <h3 className="text-lg font-semibold mb-4">LocalLens</h3>
               <p className="text-gray-400">
-                Discover what's happening near you with our local aggregation platform.
+                Discover what&apos;s happening near you with our local aggregation platform.
               </p>
             </div>
             <div>

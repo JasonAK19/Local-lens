@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, DollarSign, MapPin } from 'lucide-react';
+import { DollarSign, MapPin } from 'lucide-react';
 
 interface EventsFilterProps {
   selectedCategory: string | null;
@@ -14,9 +14,7 @@ interface EventsFilterProps {
   };
 }
 
-export default function EventsFilter({ 
-  selectedCategory, 
-  onCategoryChange, 
+export default function EventsFilter({  
   selectedPrice,
   onPriceChange,
   radius,

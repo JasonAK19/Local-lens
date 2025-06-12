@@ -8,6 +8,18 @@ interface LocationConfig {
   state?: string;
 }
 
+// Raw article from News API
+interface RawNewsArticle {
+  title?: string;
+  description?: string;
+  url?: string;
+  urlToImage?: string;
+  publishedAt: string;
+  source: {
+    name: string;
+  };
+}
+
 // Enhanced article interface
 interface EnhancedArticle {
   title: string;
@@ -25,7 +37,7 @@ interface EnhancedArticle {
 }
 
 // Enhanced Content Analysis & Categorization
-const categorizeArticle = (article: any): string[] => {
+const categorizeArticle = (article: RawNewsArticle): string[] => {
   const content = `${article.title || ''} ${article.description || ''}`.toLowerCase();
   const categories: string[] = [];
   
@@ -56,7 +68,7 @@ const categorizeArticle = (article: any): string[] => {
 };
 
 // Sentiment Analysis
-const analyzeSentiment = (article: any): 'positive' | 'negative' | 'neutral' => {
+const analyzeSentiment = (article: RawNewsArticle): 'positive' | 'negative' | 'neutral' => {
   const content = `${article.title || ''} ${article.description || ''}`.toLowerCase();
   
   const positiveWords = [
@@ -80,7 +92,7 @@ const analyzeSentiment = (article: any): 'positive' | 'negative' | 'neutral' => 
 };
 
 // Impact Scoring
-const calculateImpactScore = (article: any, location: string): number => {
+const calculateImpactScore = (article: RawNewsArticle): number => {
   let impact = 0;
   const content = `${article.title || ''} ${article.description || ''}`.toLowerCase();
   
@@ -168,7 +180,7 @@ const generateLocationConfig = (location: string): LocationConfig => {
 
 // Dynamic news source detection based on location
 const getNewsSourcesForLocation = (location: string): string[] => {
-  const [city, state] = location.split(',').map(s => s.trim().toLowerCase());
+  const [, state] = location.split(',').map(s => s.trim().toLowerCase());
   
   // Major news sources that have local coverage
   const nationalSources = ['abc-news', 'cbs-news', 'nbc-news', 'cnn', 'fox-news'];
@@ -221,7 +233,7 @@ const generateSearchQueries = (location: string, config: LocationConfig): string
 };
 
 // Enhanced relevance scoring
-const calculateRelevanceScore = (article: any, config: LocationConfig, location: string): number => {
+const calculateRelevanceScore = (article: RawNewsArticle, config: LocationConfig): number => {
   let score = 0;
   const title = article.title?.toLowerCase() || '';
   const description = article.description?.toLowerCase() || '';
@@ -283,7 +295,7 @@ export async function GET(request: NextRequest) {
     const searchQueries = generateSearchQueries(location, locationConfig);
     const localSources = getNewsSourcesForLocation(location);
     
-    let allArticles: any[] = [];
+    const allArticles: RawNewsArticle[] = [];
     
     // 1. Try local/regional sources first
     if (localSources.length > 0) {
@@ -302,8 +314,8 @@ export async function GET(request: NextRequest) {
         
         if (localSourceResponse.ok) {
           const localData = await localSourceResponse.json();
-          const relevantLocalArticles = localData.articles.filter((article: any) => {
-            return calculateRelevanceScore(article, locationConfig, location) > 5;
+          const relevantLocalArticles = localData.articles.filter((article: RawNewsArticle) => {
+            return calculateRelevanceScore(article, locationConfig) > 5;
           });
           allArticles.push(...relevantLocalArticles);
         }
@@ -346,13 +358,18 @@ export async function GET(request: NextRequest) {
     // 3. Enhanced processing: Score, categorize, analyze sentiment, and calculate impact
     const enhancedArticles: EnhancedArticle[] = allArticles
       .map(article => {
-        const relevanceScore = calculateRelevanceScore(article, locationConfig, location);
+        const relevanceScore = calculateRelevanceScore(article, locationConfig);
         const categories = categorizeArticle(article);
         const sentiment = analyzeSentiment(article);
-        const impactScore = calculateImpactScore(article, location);
+        const impactScore = calculateImpactScore(article);
         
         return {
-          ...article,
+          title: article.title || '',
+          description: article.description || '',
+          url: article.url || '',
+          urlToImage: article.urlToImage || '',
+          publishedAt: article.publishedAt,
+          source: article.source,
           categories,
           sentiment,
           impactScore,

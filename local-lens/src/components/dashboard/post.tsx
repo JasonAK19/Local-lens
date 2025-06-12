@@ -1,4 +1,5 @@
 import React , {useState} from 'react';
+import Image from 'next/image';
 import { MessageSquare, Calendar, FileText, Users, ExternalLink, MoreHorizontal, MessageCircle, ArrowUp, Play } from 'lucide-react';
 
 interface PostData {
@@ -15,13 +16,19 @@ interface PostData {
   shares?: number;
   likes?: number;
   retweets?: number;
+  url?: string;
+  thumbnail?: string;
+  permalink?: string;
+  subreddit?: string;
+  domain?: string;
+  is_video?: boolean;
 }
 
 interface PostProps {
   post: PostData;
 }
 
-export default function Post({ post }: {post: any}) {
+export default function Post({ post }: PostProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
@@ -120,9 +127,11 @@ const openNewsArticle = () => {
   
   return (
     <div className="mb-3  p-4">
-      <img 
+      <Image 
         src={proxiedImageUrl}
         alt="Test image"
+        width={400}
+        height={300}
         className="block w-full max-w-sm h-auto"
         onLoad={() => console.log(' Test image loaded')}
         onError={() => console.log(' Test image failed')}
@@ -141,22 +150,21 @@ const openNewsArticle = () => {
 
        return (
       <div className="mb-3 relative group">
-        <img 
+        <Image 
         src={proxiedImageUrl}
         alt="Post media"
+        width={400}
+        height={300}
         className="rounded-lg max-w-full max-h-96 object-cover cursor-pointer hover:opacity-90 transition-opacity"
         onClick={() => window.open(mediaUrl || originalImageUrl, '_blank')}
-        onError={(e) => {
+        onError={() => {
           console.error('Image failed to load:', proxiedImageUrl);
           setImageError(true);
         }}
-        onLoad={(e) => {
+        onLoad={() => {
           console.log('Image loaded successfully:', proxiedImageUrl);
-          const img = e.currentTarget;
-          console.log('Image dimensions:', img.naturalWidth, 'x', img.naturalHeight);
           setImageError(false);
         }}
-        loading="lazy"
         style={{ 
           backgroundColor: '#f3f4f6',
           minHeight: '100px' 
@@ -198,12 +206,13 @@ const openNewsArticle = () => {
         <div className="mb-3 relative group cursor-pointer" onClick={() => window.open(mediaUrl, '_blank')}>
           {thumbnailSrc && !imageError ? (
             <div className="relative">
-              <img 
+              <Image 
                 src={thumbnailSrc}
                 alt="Video thumbnail"
+                width={400}
+                height={300}
                 className="rounded-lg max-w-full max-h-96 object-cover"
                 onError={() => setImageError(true)}
-                loading="lazy"
               />
               <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
                 <div className="bg-black bg-opacity-60 rounded-full p-3">
@@ -225,17 +234,18 @@ const openNewsArticle = () => {
     if (thumbnailUrl && !imageError && thumbnailUrl.startsWith('http') && !isVideoUrl(mediaUrl)) {
     return (
       <div className="mb-3 relative group">
-        <img 
+        <Image 
           src={thumbnailUrl}
           alt="Post thumbnail"
+          width={300}
+          height={200}
           className="rounded-lg max-w-sm max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
           onClick={() => window.open(mediaUrl, '_blank')}
-          onError={(e) => {
+          onError={() => {
             console.log('Thumbnail load error:', thumbnailUrl);
             setImageError(true);
           }}
           onLoad={() => console.log('Thumbnail loaded successfully:', thumbnailUrl)}
-          loading="lazy"
         />
         <div className="absolute top-2 right-2 bg-black bg-opacity-60 rounded px-2 py-1">
           <span className="text-white text-xs">{post.domain || 'Link'}</span>
@@ -254,16 +264,17 @@ const openNewsArticle = () => {
       <div className="mb-3 relative group cursor-pointer" onClick={() => window.open(mediaUrl, '_blank')}>
         {thumbnailSrc && !imageError ? (
           <div className="relative">
-            <img 
+            <Image 
               src={thumbnailSrc}
               alt="Video thumbnail"
+              width={400}
+              height={300}
               className="rounded-lg max-w-full max-h-96 object-cover"
-              onError={(e) => {
+              onError={() => {
                 console.log('Video thumbnail error:', thumbnailSrc);
                 setImageError(true);
               }}
               onLoad={() => console.log('Video thumbnail loaded:', thumbnailSrc)}
-              loading="lazy"
             />
             <div className="absolute inset-0 bg-black bg-opacity-20 rounded-lg flex items-center justify-center">
               <div className="bg-black bg-opacity-60 rounded-full p-3">

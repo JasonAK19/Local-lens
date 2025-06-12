@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { TicketmasterEvent } from '../../hooks/useTicketMasterApi';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -31,6 +32,13 @@ export async function GET(request: NextRequest) {
     tmUrl.searchParams.append('size', pageSize.toString());
     tmUrl.searchParams.append('sort', 'date,asc');
     if (category) tmUrl.searchParams.append('classificationName', category);
+    // Add price filtering if needed
+    if (price && price !== 'all') {
+      if (price === 'free') {
+        tmUrl.searchParams.append('priceRange', '0-0');
+      }
+      // Add other price range logic if needed
+    }
 
     const response = await fetch(tmUrl.toString());
     if (!response.ok) {
@@ -39,38 +47,39 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    const events = (data._embedded?.events || []).map((event: any) => ({
-  id: event.id,
-  name: event.name || 'Untitled Event',
-  info: event.info || event.pleaseNote || '',
-  url: event.url,
-  dates: {
-    start: {
-      dateTime: event.dates?.start?.dateTime,
-      localDate: event.dates?.start?.localDate,
-      localTime: event.dates?.start?.localTime
-    },
-    end: {
-      dateTime: event.dates?.end?.dateTime,
-      localDate: event.dates?.end?.localDate,
-      localTime: event.dates?.end?.localTime
-    },
-    timezone: event.dates?.timezone || 'UTC'
-  },
-  _embedded: {
-    venues: event._embedded?.venues || []
-  },
-  images: event.images || [],
-  classifications: event.classifications || [],
-  priceRanges: event.priceRanges || []
-}));
+    const events = (data._embedded?.events || []).map((event: TicketmasterEvent) => ({
+      id: event.id,
+      name: event.name || 'Untitled Event',
+      info: event.info || '',
+      url: event.url,
+      dates: {
+        start: {
+          dateTime: event.dates?.start?.dateTime,
+          localDate: event.dates?.start?.localDate,
+          localTime: event.dates?.start?.localTime
+        },
+        end: {
+          dateTime: event.dates?.end?.dateTime,
+          localDate: event.dates?.end?.localDate,
+          localTime: event.dates?.end?.localTime
+        },
+        timezone: event.dates?.timezone || 'UTC'
+      },
+      _embedded: {
+        venues: event._embedded?.venues || []
+      },
+      images: event.images || [],
+      classifications: event.classifications || [],
+      priceRanges: event.priceRanges || []
+    }));
 
     return NextResponse.json({
       events,
       totalResults: data.page?.totalElements || events.length,
       location,
     });
-  } catch (error) {
+  } catch (err) {
+    console.error('Error fetching events data:', err);
     return NextResponse.json(
       { error: 'Failed to fetch events data' },
       { status: 500 }

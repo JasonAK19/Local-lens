@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, MapPin, Users, ExternalLink, DollarSign } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, ExternalLink} from 'lucide-react';
 
 interface Event {
   id: string;

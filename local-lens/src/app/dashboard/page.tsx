@@ -9,11 +9,19 @@ import Post from '@/components/dashboard/post';
 import Sidebar from '@/components/dashboard/sidebar';
 import { Search } from 'lucide-react';
 import { useLocation } from '@/contexts/locationContext';
-import { locationService } from '@/utils/locationService';
 import NewsCard from '@/components/news/NewsCard';
 import SentimentFilter from '@/components/news/SentimentFilter';
 import EventCard from '@/components/events/EventCard';
 //import EventsFilter from '@/components/events/EventsFilter';
+
+interface Location {
+  latitude: number;
+  longitude: number;
+  city?: string;
+  state?: string;
+  displayName?: string;
+}
+
 
 export default function Dashboard() {
   const { currentLocation, setLocation} = useLocation();
@@ -24,7 +32,7 @@ export default function Dashboard() {
   const [selectedEventPrice, setSelectedEventPrice] = useState<'free' | 'paid' | 'all'>('all');
   const [eventRadius, setEventRadius] = useState<string>('25');
 
-  const getLocationString = (location: any) => {
+  const getLocationString = (location: Location) => {
     if (!location) return 'Baltimore, MD'; // fallback
     
     if (location.city && location.state) {
@@ -114,6 +122,26 @@ export default function Dashboard() {
   selectedEventPrice !== 'all' ? selectedEventPrice : undefined
 );
 
+ const handleCategoryChange = (category: string | null) => {
+    setSelectedCategory(category);
+  };
+
+  const handleMinImpactChange = (impact: number) => {
+    setMinImpact(impact);
+  };
+
+  const handleEventCategoryChange = (category: string | null) => {
+    setSelectedEventCategory(category);
+  };
+
+  const handleEventPriceChange = (price: 'free' | 'paid' | 'all') => {
+    setSelectedEventPrice(price);
+  };
+
+  const handleEventRadiusChange = (radius: string) => {
+    setEventRadius(radius);
+  };
+
   const transformedRedditPosts = redditPosts.map((post, index) => ({
     id: index + 1000, 
     source: `r/${post.subreddit}`,
@@ -194,7 +222,6 @@ export default function Dashboard() {
     ));
   }, [newsArticles.length, redditPosts.length, transformedEvents.length]);
 
-  const isLoading = loading || newsLoading;
   const hasError = error || newsError;
 
   // Mock data for the dashboard
@@ -389,27 +416,113 @@ return (
       {/* Main Content */}
       <main className="flex-1 p-6">
       
-        {/* Events Filter - Only show when Events tab is active 
-        {(activeFilter === 'Events' || activeFilter === 'All') && (
-          <EventsFilter
-            selectedCategory={selectedEventCategory}
-            onCategoryChange={setSelectedEventCategory}
-            selectedPrice={selectedEventPrice}
-            onPriceChange={setSelectedEventPrice}
-            radius={eventRadius}
-            onRadiusChange={setEventRadius}
-          />
-        )}*/}
+    
+
+{/* Events Filter - Only show when Events tab is active */}
+{(activeFilter === 'Events' || activeFilter === 'All') && (
+  <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+    <h3 className="text-lg font-semibold text-gray-900 mb-4">Event Filters</h3>
+    
+    {/* Category Filter */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-800 mb-2">Category:</label>
+      <select
+        value={selectedEventCategory || ''}
+        onChange={(e) => handleEventCategoryChange(e.target.value || null)}
+        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+      >
+        <option value="">All Categories</option>
+        <option value="music">Music</option>
+        <option value="sports">Sports</option>
+        <option value="arts">Arts & Theater</option>
+        <option value="family">Family</option>
+      </select>
+    </div>
+
+    {/* Price Filter */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-900 mb-2">Price:</label>
+      <div className="flex space-x-4 text-sm text-gray-900">
+        {(['all', 'free', 'paid'] as const).map((price) => (
+          <label key={price} className="flex items-center">
+            <input
+              type="radio"
+              value={price}
+              checked={selectedEventPrice === price}
+              onChange={(e) => handleEventPriceChange(e.target.value as 'free' | 'paid' | 'all')}
+              className="mr-2"
+            />
+            <span className="capitalize">{price}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+
+    {/* Radius Filter */}
+    <div className="mb-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Search Radius: {eventRadius} miles
+      </label>
+      <select
+        value={eventRadius}
+        onChange={(e) => handleEventRadiusChange(e.target.value)}
+        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+      >
+        <option value="10">10 miles</option>
+        <option value="25">25 miles</option>
+        <option value="50">50 miles</option>
+        <option value="100">100 miles</option>
+      </select>
+    </div>
+  </div>
+)}
+
         
         
       
         {/* Sentiment Filter - Only show when News tab is active */}
         {(activeFilter === 'News' || activeFilter === 'All') && (
-          <SentimentFilter
-            selectedSentiment={selectedSentiment}
-            onSentimentChange={setSelectedSentiment}
-            analytics={analytics || undefined}
-          />
+  <div className="space-y-4 mb-6">
+    <SentimentFilter
+      selectedSentiment={selectedSentiment}
+      onSentimentChange={setSelectedSentiment}
+      analytics={analytics || undefined}
+    />
+    
+    {/* Category Filter */}
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <label className="block text-sm font-medium text-gray-900 mb-2">Category:</label>
+      <select
+        value={selectedCategory || ''}
+        onChange={(e) => handleCategoryChange(e.target.value || null)}
+        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+      >
+        <option value="">All Categories</option>
+        <option value="politics">Politics</option>
+        <option value="business">Business</option>
+        <option value="sports">Sports</option>
+        <option value="health">Health</option>
+        <option value="technology">Technology</option>
+      </select>
+    </div>
+ {/* Add Impact Filter */}
+    <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        Minimum Impact Score: {minImpact}
+      </label>
+      <input
+        type="range"
+        min="0"
+        max="10"
+        value={minImpact}
+        onChange={(e) => handleMinImpactChange(Number(e.target.value))}
+        className="w-full"
+      />
+    </div>
+  </div>
+
+          
+
         )}
 
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">

@@ -15,6 +15,20 @@ export interface RedditPost {
   flair_text?: string;  
 }
 
+interface RedditApiChild {
+  data: RedditPost;
+}
+
+interface RedditApiResponse {
+  data?: {
+    children?: RedditApiChild[];
+  };
+}
+
+interface PostWithRelevanceScore extends RedditPost {
+  relevanceScore: number;
+}
+
 // Smart content relevance function
 function isLocationRelevant(post: RedditPost, location: string): boolean {
   const [city, state] = location.split(', ');
@@ -31,10 +45,8 @@ function isLocationRelevant(post: RedditPost, location: string): boolean {
     ...(location.includes('DC') ? ['washington', 'dc', 'dmv'] : [])
   ].filter(Boolean);
   
-  // Combine title and content for searching - add null checks
   const postText = `${post.title || ''} ${post.selftext || ''}`.toLowerCase();
   
-  // Check if any search terms appear in the post
   const hasLocationMention = searchTerms.some(term => 
     postText.includes(term)
   );
@@ -187,13 +199,13 @@ export async function fetchLocationPosts(
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+      const data: RedditApiResponse = await response.json();
+
       
       if (data.data?.children) {
-        // Add filtering to ensure we only add posts with required fields
         const validPosts = data.data.children
-          .map((child: any) => child.data)
-          .filter((post: any) => post && post.title && post.subreddit); // Filter out invalid posts
+          .map((child: RedditApiChild) => child.data)
+          .filter((post: RedditPost) => post && post.title && post.subreddit); // Filter out invalid posts
         
         posts.push(...validPosts);
       }
@@ -210,11 +222,10 @@ export async function fetchLocationPosts(
         ...post,
         relevanceScore: calculateRelevanceScore(post, location)
       }))
-      .sort((a: any, b: any) => b.relevanceScore - a.relevanceScore);
+      .sort((a: PostWithRelevanceScore, b: PostWithRelevanceScore) => b.relevanceScore - a.relevanceScore);
     
     return relevantPosts.slice(0, 30);
   }
   
-  // For other sort types, just sort by time and limit
   return posts.sort((a, b) => b.created_utc - a.created_utc).slice(0, 30);
 }

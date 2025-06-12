@@ -38,7 +38,7 @@ class LocationService {
           try {
             const locationDetails = await this.reverseGeocode(latitude, longitude);
             resolve(locationDetails);
-          } catch (error) {
+          } catch {
             resolve({ latitude, longitude });
           }
         },
