@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect} from 'react';
 import { fetchLocationPosts, RedditPost } from '@/lib/reddit';
 
 export function useRedditPosts(location: string, redditSort: 'hot' | 'new' | 'top' | 'relevant') {
@@ -23,7 +23,7 @@ export function useRedditPosts(location: string, redditSort: 'hot' | 'new' | 'to
 
   useEffect(() => {
     loadPosts();
-  }, [location, redditSort]); // Add redditSort to the dependency array
+  }, [location, redditSort]); 
 
   return { posts, loading, error, refetch: () => loadPosts() };
 }

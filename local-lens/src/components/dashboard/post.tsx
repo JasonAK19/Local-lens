@@ -1,9 +1,9 @@
 import React , {useState} from 'react';
 import Image from 'next/image';
-import { MessageSquare, Calendar, FileText, Users, ExternalLink, MoreHorizontal, MessageCircle, ArrowUp, Play } from 'lucide-react';
+import { MessageSquare, Calendar, FileText, Users, ExternalLink, MoreHorizontal, MessageCircle, ArrowUp, Play, ChevronDown, Chevronup } from 'lucide-react';
 
 interface PostData {
-  id: number;
+  id: string | number;
   source: string;
   title: string;
   content: string;

@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Clock, ExternalLink, TrendingUp, Heart, AlertTriangle } from 'lucide-react';
 
 interface NewsArticle {
@@ -82,7 +83,7 @@ export default function NewsCard({ article }: NewsCardProps) {
       </div>
 
       {article.urlToImage && (
-        <img 
+        <Image
           src={article.urlToImage} 
           alt={article.title}
           className="w-full h-48 object-cover rounded-lg mb-3"

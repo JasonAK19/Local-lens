@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Calendar, Clock, MapPin, Users, ExternalLink} from 'lucide-react';
 
 interface Event {
@@ -63,7 +64,7 @@ export default function EventCard({ event }: EventCardProps) {
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-start space-x-3 flex-1">
           {event.logoUrl && (
-            <img 
+            <Image
               src={event.logoUrl} 
               alt={event.title}
               className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
