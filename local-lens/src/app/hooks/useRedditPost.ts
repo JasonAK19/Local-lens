@@ -1,4 +1,4 @@
-import { useState, useEffect} from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { fetchLocationPosts, RedditPost } from '@/lib/reddit';
 
 export function useRedditPosts(location: string, redditSort: 'hot' | 'new' | 'top' | 'relevant') {
@@ -6,7 +6,7 @@ export function useRedditPosts(location: string, redditSort: 'hot' | 'new' | 'to
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadPosts() {
+  const loadPosts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -19,11 +19,11 @@ export function useRedditPosts(location: string, redditSort: 'hot' | 'new' | 'to
     } finally {
       setLoading(false);
     }
-  }
+  }, [location, redditSort]);
 
   useEffect(() => {
     loadPosts();
-  }, [location, redditSort]); 
+  }, [loadPosts]); 
 
-  return { posts, loading, error, refetch: () => loadPosts() };
+  return { posts, loading, error, refetch: loadPosts };
 }
